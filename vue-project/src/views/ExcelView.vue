@@ -4,6 +4,7 @@ import * as XLSX from 'xlsx'
 import Message from 'primevue/message'
 import Button from 'primevue/button'
 import Paginator from 'primevue/paginator'
+import Dialog from 'primevue/dialog'
 
 const uploadState = reactive({
   excelName: '',
@@ -18,6 +19,10 @@ const fileInputRef = ref(null)
 // Pagination state
 const first = ref(0)
 const rowsPerPage = ref(20)
+
+// Dialog state
+const selectedRow = ref(null)
+const showRowDialog = ref(false)
 
 const triggerFileSelect = () => {
   if (fileInputRef.value) {
@@ -286,6 +291,16 @@ const onPageChange = (event) => {
   first.value = event.first
   rowsPerPage.value = event.rows
 }
+
+const onRowSelect = (event) => {
+  selectedRow.value = event.data
+  showRowDialog.value = true
+}
+
+const closeRowDialog = () => {
+  showRowDialog.value = false
+  selectedRow.value = null
+}
 </script>
 
 <template>
@@ -378,7 +393,11 @@ const onPageChange = (event) => {
                 :style="{ minWidth: '120px', maxWidth: '300px' }"
               >
                 <template #body="{ data }">
-                  <span class="cell-content" :title="data[col.field] || ''">
+                  <span 
+                    class="cell-content clickable-cell" 
+                    :title="data[col.field] || ''"
+                    @click="onRowSelect({ data })"
+                  >
                     {{ data[col.field] || '' }}
                   </span>
                 </template>
@@ -405,6 +424,48 @@ const onPageChange = (event) => {
       </div>
     </template>
     </Card>
+
+    <!-- Row Details Dialog -->
+    <Dialog
+      v-model:visible="showRowDialog"
+      modal
+      header="Row Information"
+      :style="{ width: '600px' }"
+      :closable="true"
+      @hide="closeRowDialog"
+    >
+      <div v-if="selectedRow" class="row-details">
+        <div class="row-info-header">
+          <i class="pi pi-info-circle text-primary mr-2"></i>
+          <span class="text-lg font-semibold">Row Details</span>
+        </div>
+        
+        <div class="row-details-content">
+          <div 
+            v-for="col in columns" 
+            :key="col.field"
+            class="detail-item"
+          >
+            <div class="detail-label">
+              <strong>{{ col.header }}:</strong>
+            </div>
+            <div class="detail-value">
+              {{ selectedRow[col.field] || '(empty)' }}
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <template #footer>
+        <Button 
+          label="Close" 
+          icon="pi pi-times" 
+          @click="closeRowDialog" 
+          severity="secondary"
+          outlined
+        />
+      </template>
+    </Dialog>
   </div>
 </template>
 
@@ -538,8 +599,20 @@ const onPageChange = (event) => {
   max-width: 100%;
 }
 
+.clickable-cell {
+  cursor: pointer;
+  width: 100%;
+  display: block;
+}
+
 .excel-table :global(.p-datatable-tbody > tr:hover) {
   background: var(--surface-100);
+  cursor: pointer;
+}
+
+.excel-table :global(.p-datatable-tbody > tr) {
+  cursor: pointer;
+  transition: background-color 0.2s;
 }
 
 .table-paginator {
@@ -562,6 +635,49 @@ const onPageChange = (event) => {
 
 .file-upload-component {
   margin-top: 0.5rem;
+}
+
+/* Row Details Dialog Styles */
+.row-details {
+  padding: 1rem 0;
+}
+
+.row-info-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid var(--surface-border);
+}
+
+.row-details-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: var(--surface-50);
+  border-radius: 6px;
+  border-left: 3px solid var(--primary-color);
+}
+
+.detail-label {
+  color: var(--text-color-secondary);
+  font-size: 0.875rem;
+}
+
+.detail-value {
+  color: var(--text-color);
+  font-size: 0.95rem;
+  word-break: break-word;
+  white-space: pre-wrap;
 }
 
 /* Responsive adjustments */

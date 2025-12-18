@@ -13,12 +13,14 @@ import Breadcrumb from 'primevue/breadcrumb'
 import InputIcon from 'primevue/inputicon'
 import InputText from 'primevue/inputtext'
 import Paginator from 'primevue/paginator'
+import Dialog from 'primevue/dialog'
 
 import App from './App.vue'
 import { router } from './router'
 
 import 'primeicons/primeicons.css'
 import 'primeflex/primeflex.css'
+import './style.css'
 
 const app = createApp(App)
 
@@ -37,5 +39,6 @@ app.component('Breadcrumb', Breadcrumb)
 app.component('InputIcon', InputIcon)
 app.component('InputText', InputText)
 app.component('Paginator', Paginator)
+app.component('Dialog', Dialog)
 
 app.mount('#app')
