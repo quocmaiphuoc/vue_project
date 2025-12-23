@@ -30,7 +30,7 @@
             <div class="pdf-header">
               <div class="pdf-logo-section">
                 <div class="pdf-logo">
-                  <span class="pdf-logo-text">bms</span>
+                  <span class="pdf-logo-text">cgv</span>
                   <span class="pdf-logo-dot"></span>
                 </div>
               </div>

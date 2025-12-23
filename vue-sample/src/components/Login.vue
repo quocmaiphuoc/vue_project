@@ -3,7 +3,7 @@
     <div class="login-background"></div>
     <div class="login-box">
       <div class="logo">
-        <span class="logo-text">bms</span>
+        <span class="logo-text">cgv</span>
         <span class="logo-dot"></span>
       </div>
       <h2 class="welcome-text">Welcome to COI Generation</h2>

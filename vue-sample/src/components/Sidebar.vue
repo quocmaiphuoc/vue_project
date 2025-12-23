@@ -2,7 +2,7 @@
   <aside class="sidebar" :class="{ collapsed: isCollapsed }">
     <div class="logo-section">
       <div class="logo">
-        <span class="logo-text" v-show="!isCollapsed">bms</span>
+        <span class="logo-text" v-show="!isCollapsed">cgv</span>
         <span class="logo-dot"></span>
       </div>
     </div>
