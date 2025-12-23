@@ -1,0 +1,47 @@
+@import "tailwindcss";
+@import "primeicons/primeicons.css";
+
+:root {
+  /* Core Color Palette */
+  --color-core-red-orange: #D62828;
+  --color-core-bright-orange: #F77F00;
+  --color-core-white: #FFFFFF;
+  --color-core-black: #000000;
+  --color-core-dark-blue: #003049;
+
+  /* Extended Color Palette */
+  --color-ext-light-peach: #FFE5D9;
+  --color-ext-red-orange: #D62828;
+  --color-ext-dark-red-brown: #6B2C1A;
+  --color-ext-bright-orange: #F77F00;
+  --color-ext-white: #FFFFFF;
+  --color-ext-black: #000000;
+  --color-ext-light-blue: #A8DADC;
+  --color-ext-dark-blue: #003049;
+  --color-ext-very-dark-blue: #000814;
+  --color-ext-dark-green: #264653;
+  --color-ext-light-gray: #F1FAEE;
+
+  /* Login Page Specific Colors */
+  --color-login-box-bg: #2C3E50;
+  --color-login-border: #4A4A4A;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  color: var(--color-core-black);
+  background-color: var(--color-ext-light-gray);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  overflow: hidden;
+}
+
+#app {
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+}

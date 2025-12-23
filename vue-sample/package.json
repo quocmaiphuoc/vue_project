@@ -1,5 +1,5 @@
 {
-  "name": "vue_example",
+  "name": "vue-sample",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -12,19 +12,15 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@heroicons/vue": "^2.2.0",
+    "@primeuix/themes": "^2.0.2",
     "@tailwindcss/vite": "^4.1.18",
-    "pinia": "^3.0.4",
     "primeicons": "^7.0.0",
     "primevue": "^4.5.4",
-    "vue": "^3.5.25",
-    "vue-router": "^4.6.4",
-    "xlsx": "^0.18.5"
+    "tailwindcss": "^4.1.18",
+    "vue": "^3.5.25"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^6.0.2",
-    "autoprefixer": "^10.4.23",
-    "tailwindcss": "^4.1.18",
     "vite": "^7.2.4",
     "vite-plugin-vue-devtools": "^8.0.5"
   }

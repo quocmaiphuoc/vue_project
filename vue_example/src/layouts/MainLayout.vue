@@ -1,10 +1,12 @@
 <script setup>
 import { computed, onMounted, onUnmounted } from 'vue'
 import { storeToRefs } from 'pinia'
+import { useRouter } from 'vue-router'
 import { useSidebarStore } from '../stores/sidebar'
 import Sidebar from '../components/Sidebar.vue'
 import Navbar from '../components/Navbar.vue'
 
+const router = useRouter()
 const sidebarStore = useSidebarStore()
 const { isSidebarOpen, windowWidth } = storeToRefs(sidebarStore)
 
@@ -33,6 +35,16 @@ onUnmounted(() => {
 
 const toggleSidebar = () => {
   sidebarStore.toggleSidebar()
+}
+
+const handleGenerateCOI = () => {
+  // Navigate to generate COI or open modal
+  console.log('Generate COI clicked')
+}
+
+const handleLogout = () => {
+  // Navigate to login
+  router.push('/login')
 }
 
 // Computed styles for main content - properly reactive
@@ -68,7 +80,7 @@ const mainContentStyle = computed(() => {
       :style="mainContentStyle"
     >
       <!-- Header -->
-      <Navbar />
+      <Navbar @generate-coi="handleGenerateCOI" @logout="handleLogout" />
 
       <!-- Main content - Router View -->
       <div class="flex-1 overflow-hidden">

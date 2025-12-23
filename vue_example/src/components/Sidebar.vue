@@ -45,7 +45,7 @@ const emit = defineEmits(['toggle'])
         leave-to-class="opacity-0"
       >
         <div v-if="isOpen" class="text-white text-2xl font-bold whitespace-nowrap">
-          cgv.
+          bms.<span class="text-orange-500">.</span>
         </div>
       </Transition>
     </div>
@@ -68,6 +68,12 @@ const emit = defineEmits(['toggle'])
           <i class="pi pi-file mr-3 text-base flex-shrink-0" />
           <span class="whitespace-nowrap">Certificate of Insurance</span>
         </a>
+        <button
+          v-else
+          class="flex items-center justify-center w-full px-3 py-2 text-white hover:bg-blue-800 rounded-md transition-colors"
+        >
+          <i class="pi pi-file text-base" />
+        </button>
       </Transition>
     </nav>
 

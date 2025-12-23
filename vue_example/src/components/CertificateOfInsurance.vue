@@ -132,18 +132,23 @@ const certificates = ref([
     <div class="mb-6 space-y-4 md:space-y-0 md:flex md:items-center md:space-x-4">
       <!-- Issue Date -->
       <div class="flex items-center space-x-2">
-        <label class="text-sm font-medium text-gray-700">Issue Date:</label>
-        <input
-          v-model="issueDateFrom"
-          type="date"
-          class="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-        <span class="text-sm text-gray-500">to</span>
-        <input
-          v-model="issueDateTo"
-          type="date"
-          class="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
+        <label class="text-sm font-medium text-gray-700 whitespace-nowrap">Issue Date:</label>
+        <div class="flex items-center space-x-1">
+          <input
+            v-model="issueDateFrom"
+            type="date"
+            class="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <i class="pi pi-arrow-right text-gray-400 text-xs" />
+          <div class="relative">
+            <input
+              v-model="issueDateTo"
+              type="date"
+              class="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 pr-8"
+            />
+            <i class="pi pi-calendar absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs pointer-events-none" />
+          </div>
+        </div>
       </div>
 
       <!-- COI Status -->
@@ -161,14 +166,23 @@ const certificates = ref([
 
       <!-- Search -->
       <div class="flex-1 max-w-md">
-        <div class="relative">
-          <i class="pi pi-search absolute left-3 top-1/2 transform -translate-y-1/2 text-base text-gray-400" />
-          <input
-            v-model="searchQuery"
-            type="text"
-            placeholder="Search"
-            class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
+        <div class="flex items-center space-x-2">
+          <select
+            class="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+          >
+            <option>Insured Name</option>
+            <option>COI No.</option>
+            <option>Association</option>
+          </select>
+          <div class="relative flex-1">
+            <input
+              v-model="searchQuery"
+              type="text"
+              placeholder="Search"
+              class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <i class="pi pi-search absolute right-3 top-1/2 transform -translate-y-1/2 text-base text-gray-400" />
+          </div>
         </div>
       </div>
     </div>
@@ -200,10 +214,14 @@ const certificates = ref([
               <span
                 :class="[
                   cert.coiStatus === 'Issued'
-                    ? 'px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800'
-                    : 'px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800',
+                    ? 'inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800'
+                    : 'inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800',
                 ]"
               >
+                <i
+                  v-if="cert.coiStatus === 'Issued'"
+                  class="pi pi-circle-fill text-green-600 text-[6px] mr-1"
+                />
                 {{ cert.coiStatus }}
               </span>
             </td>
