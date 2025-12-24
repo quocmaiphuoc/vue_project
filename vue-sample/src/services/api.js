@@ -2,62 +2,8 @@
  * API Service for COI Generation
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api'
-
-/**
- * Parse Excel file and get preview data
- * @param {File} file - Excel file to parse
- * @returns {Promise<Array>} Parsed data array
- */
-export const parseExcelFile = async (file) => {
-  try {
-    const formData = new FormData()
-    formData.append('file', file)
-
-    const response = await fetch(`${API_BASE_URL}/coi/parse-excel`, {
-      method: 'POST',
-      body: formData,
-    })
-
-    if (!response.ok) {
-      throw new Error('Failed to parse Excel file')
-    }
-
-    const data = await response.json()
-    return data.previewData || []
-  } catch (error) {
-    console.error('Error parsing Excel file:', error)
-    // Fallback: return mock data for development
-    return getMockPreviewData()
-  }
-}
-
-/**
- * Generate COIs from Excel file
- * @param {File} file - Excel file to process
- * @returns {Promise<Object>} API response
- */
-export const generateCOIsFromExcel = async (file) => {
-  try {
-    const formData = new FormData()
-    formData.append('file', file)
-
-    const response = await fetch(`${API_BASE_URL}/coi/generate`, {
-      method: 'POST',
-      body: formData,
-    })
-
-    if (!response.ok) {
-      throw new Error('Failed to generate COIs')
-    }
-
-    const data = await response.json()
-    return data
-  } catch (error) {
-    console.error('Error generating COIs:', error)
-    throw error
-  }
-}
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://webhook.site'
+const USE_MOCK_DATA = import.meta.env.VITE_USE_MOCK_DATA === 'true' || false
 
 /**
  * Mock preview data for development/testing
@@ -76,4 +22,59 @@ const getMockPreviewData = () => {
     { association: 'Canadian Society of Respiratory Therapists', insuredName: 'Chloe Wilson', insuredEmail: 'chloe.wilson@gmail.com', insuredAddress: '369 Birch Ave', insuredCity: 'Regina' },
   ]
 }
+
+/**
+ * Note: Excel parsing is now done in the frontend using excelParser.js
+ * This function is kept for backward compatibility but parsing happens in Layout.vue
+ */
+
+/**
+ * Generate COIs from Excel file
+ * Sends file to API, API processes it and generates COIs
+ * @param {File} file - Excel file to process
+ * @returns {Promise<Object>} API response with generation results
+ */
+export const generateCOIsFromExcel = async (file) => {
+  // Use mock success if mock data is enabled
+  if (USE_MOCK_DATA) {
+    console.log('Using mock data for development - simulating COI generation')
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 1500))
+    return {
+      success: true,
+      message: 'COIs generated successfully',
+      count: getMockPreviewData().length
+    }
+  }
+
+  try {
+    const formData = new FormData()
+    formData.append('file', file)
+
+    const response = await fetch(`https://webhook.site`, {
+      method: 'POST',
+      body: formData,
+      // Don't set Content-Type header, browser will set it with boundary for FormData
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      throw new Error(errorData.message || `Failed to generate COIs: ${response.status} ${response.statusText}`)
+    }
+
+    const data = await response.json()
+    return data
+  } catch (error) {
+    // If it's a network error, provide helpful message
+    if (error.message.includes('Failed to fetch') || error.name === 'TypeError') {
+      const networkError = new Error('Unable to connect to the server. Please make sure the API server is running.')
+      networkError.isNetworkError = true
+      throw networkError
+    }
+    
+    console.error('Error generating COIs:', error)
+    throw error
+  }
+}
+
 

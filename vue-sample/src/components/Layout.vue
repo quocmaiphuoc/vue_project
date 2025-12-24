@@ -68,7 +68,8 @@ import GenerateCOIDialog from './GenerateCOIDialog.vue'
 import ReviewDataDialog from './ReviewDataDialog.vue'
 import PreviewPDFDialog from './PreviewPDFDialog.vue'
 import ConfirmDialog from './ConfirmDialog.vue'
-import { parseExcelFile, generateCOIsFromExcel } from '../services/api.js'
+import { generateCOIsFromExcel } from '../services/api.js'
+import { parseExcelFile } from '../utils/excelParser.js'
 
 const props = defineProps({
   userName: {
@@ -119,15 +120,22 @@ const handleGenerateCOIUpload = async (file) => {
     isLoading.value = true
     uploadedExcelFile.value = file
     
-    // Parse Excel file and get preview data
+    // Parse Excel file in frontend and get preview data
     const parsedData = await parseExcelFile(file)
+    
+    if (!parsedData || parsedData.length === 0) {
+      alert('No data found in Excel file. Please check the file format.')
+      return
+    }
+    
     previewData.value = parsedData
     
     showGenerateCOIDialog.value = false
     showReviewDataDialog.value = true
   } catch (error) {
     console.error('Error parsing Excel file:', error)
-    alert('Failed to parse Excel file. Please try again.')
+    const errorMessage = error.message || 'Failed to parse Excel file. Please check the file format and try again.'
+    alert(errorMessage)
   } finally {
     isLoading.value = false
   }
@@ -196,14 +204,18 @@ const handleConfirmIssueConfirm = async () => {
     uploadedExcelFile.value = null
     
     // Show success message (you can replace this with a toast notification)
-    alert(`Successfully generated ${coiCount} COI(s)!`)
+    const successCount = response?.count || coiCount
+    alert(`Successfully generated ${successCount} COI(s)!`)
     
     // Optionally refresh the COI list or navigate
     // You might want to emit an event to refresh the CertificateOfInsurance component
     
   } catch (error) {
     console.error('Error generating COIs:', error)
-    alert('Failed to generate COIs. Please try again.')
+    const errorMessage = error.isNetworkError
+      ? 'Unable to connect to the server. Please make sure the API server is running at http://localhost:3000/api'
+      : error.message || 'Failed to generate COIs. Please try again.'
+    alert(errorMessage)
   } finally {
     isLoading.value = false
   }
