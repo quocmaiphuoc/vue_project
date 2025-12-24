@@ -55,9 +55,10 @@
           <button 
             class="btn-upload" 
             @click="handleUpload"
-            :disabled="!selectedFile"
+            :disabled="!selectedFile || loading"
           >
-            Upload
+            <span v-if="loading">Processing...</span>
+            <span v-else>Upload</span>
           </button>
         </div>
       </div>
@@ -70,6 +71,10 @@ import { ref } from 'vue'
 
 const props = defineProps({
   show: {
+    type: Boolean,
+    default: false
+  },
+  loading: {
     type: Boolean,
     default: false
   }
@@ -401,6 +406,11 @@ const handleUpload = () => {
 
 .btn-upload:active:not(:disabled) {
   transform: translateY(0);
+}
+
+.btn-upload:disabled:hover {
+  transform: none;
+  box-shadow: none;
 }
 </style>
 

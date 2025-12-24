@@ -50,9 +50,10 @@
         </div>
         
         <div class="dialog-actions">
-          <button class="btn-cancel" @click="handleClose">Cancel</button>
-          <button class="btn-confirm" @click="handleConfirm">
-            Confirm to Issue
+          <button class="btn-cancel" @click="handleClose" :disabled="loading">Cancel</button>
+          <button class="btn-confirm" @click="handleConfirm" :disabled="loading">
+            <span v-if="loading">Processing...</span>
+            <span v-else>Confirm to Issue</span>
           </button>
         </div>
       </div>
@@ -71,6 +72,10 @@ const props = defineProps({
   previewData: {
     type: Array,
     default: () => []
+  },
+  loading: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -330,6 +335,17 @@ const handleConfirm = () => {
 
 .btn-confirm:active {
   transform: translateY(0);
+}
+
+.btn-cancel:disabled,
+.btn-confirm:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-confirm:disabled:hover {
+  transform: none;
+  box-shadow: none;
 }
 </style>
 

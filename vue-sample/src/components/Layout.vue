@@ -17,12 +17,14 @@
     />
     <GenerateCOIDialog 
       :show="showGenerateCOIDialog" 
+      :loading="isLoading"
       @close="handleGenerateCOIClose"
       @upload="handleGenerateCOIUpload"
     />
     <ReviewDataDialog 
       :show="showReviewDataDialog" 
       :preview-data="previewData"
+      :loading="isLoading"
       @close="handleReviewDataClose"
       @back="handleReviewDataBack"
       @preview-pdf="handlePreviewPDF"
@@ -66,6 +68,7 @@ import GenerateCOIDialog from './GenerateCOIDialog.vue'
 import ReviewDataDialog from './ReviewDataDialog.vue'
 import PreviewPDFDialog from './PreviewPDFDialog.vue'
 import ConfirmDialog from './ConfirmDialog.vue'
+import { parseExcelFile, generateCOIsFromExcel } from '../services/api.js'
 
 const props = defineProps({
   userName: {
@@ -84,6 +87,8 @@ const showCancelConfirmDialog = ref(false)
 const showConfirmIssueDialog = ref(false)
 const previewData = ref([])
 const selectedPDFData = ref(null)
+const uploadedExcelFile = ref(null)
+const isLoading = ref(false)
 
 const showLogoutDialogHandler = () => {
   showLogoutDialog.value = true
@@ -109,28 +114,29 @@ const handleGenerateCOIClose = () => {
   showGenerateCOIDialog.value = false
 }
 
-const handleGenerateCOIUpload = (file) => {
-  console.log('File uploaded:', file)
-  // Simulate parsing Excel file and getting preview data
-  // In a real app, you would parse the Excel file here
-  previewData.value = [
-    { association: 'Canadian Society of Respiratory Therapists', insuredName: 'Emily Carter', insuredEmail: 'emily@gmail.com', insuredAddress: '123 Main St', insuredCity: 'Toronto' },
-    { association: 'Canadian Society of Respiratory Therapists', insuredName: 'Michael Brown', insuredEmail: 'michael.brown@gmail.com', insuredAddress: '456 Queen St', insuredCity: 'Vancouver' },
-    { association: 'Canadian Society of Respiratory Therapists', insuredName: 'Sophia Lee', insuredEmail: 'sophias@gmail.com', insuredAddress: '789 King St', insuredCity: 'Montreal' },
-    { association: 'Canadian Society of Respiratory Therapists', insuredName: 'Daniel Smith', insuredEmail: 'daniel.smith@gmail.com', insuredAddress: '321 Oak Ave', insuredCity: 'Calgary' },
-    { association: 'Canadian Society of Respiratory Therapists', insuredName: 'Olivia Martin', insuredEmail: 'olivia.martin@gmail.com', insuredAddress: '654 Pine St', insuredCity: 'Ottawa' },
-    { association: 'Canadian Society of Respiratory Therapists', insuredName: 'Ethan Scott', insuredEmail: 'ethan.scott@gmail.com', insuredAddress: '987 Elm St', insuredCity: 'Edmonton' },
-    { association: 'Canadian Society of Respiratory Therapists', insuredName: 'Grace Turner', insuredEmail: 'grace.turner@gmail.com', insuredAddress: '147 Maple Ave', insuredCity: 'Winnipeg' },
-    { association: 'Canadian Society of Respiratory Therapists', insuredName: 'William Evans', insuredEmail: 'william.evans@gmail.com', insuredAddress: '258 Cedar St', insuredCity: 'Halifax' },
-    { association: 'Canadian Society of Respiratory Therapists', insuredName: 'Chloe Wilson', insuredEmail: 'chloe.wilson@gmail.com', insuredAddress: '369 Birch Ave', insuredCity: 'Regina' },
-  ]
-  showGenerateCOIDialog.value = false
-  showReviewDataDialog.value = true
+const handleGenerateCOIUpload = async (file) => {
+  try {
+    isLoading.value = true
+    uploadedExcelFile.value = file
+    
+    // Parse Excel file and get preview data
+    const parsedData = await parseExcelFile(file)
+    previewData.value = parsedData
+    
+    showGenerateCOIDialog.value = false
+    showReviewDataDialog.value = true
+  } catch (error) {
+    console.error('Error parsing Excel file:', error)
+    alert('Failed to parse Excel file. Please try again.')
+  } finally {
+    isLoading.value = false
+  }
 }
 
 const handleReviewDataClose = () => {
   showReviewDataDialog.value = false
   previewData.value = []
+  uploadedExcelFile.value = null
 }
 
 const handleReviewDataBack = () => {
@@ -156,6 +162,7 @@ const handleCancelConfirm = () => {
   showCancelConfirmDialog.value = false
   showReviewDataDialog.value = false
   previewData.value = []
+  uploadedExcelFile.value = null
 }
 
 const handleCancelCancel = () => {
@@ -166,13 +173,40 @@ const showConfirmIssueDialogHandler = () => {
   showConfirmIssueDialog.value = true
 }
 
-const handleConfirmIssueConfirm = () => {
-  console.log('Confirming to issue COIs:', previewData.value)
-  // Handle the confirmation logic here
-  showConfirmIssueDialog.value = false
-  showReviewDataDialog.value = false
-  previewData.value = []
-  // You might want to show a success message or refresh the data
+const handleConfirmIssueConfirm = async () => {
+  if (!uploadedExcelFile.value) {
+    alert('No file found. Please upload the file again.')
+    return
+  }
+
+  const coiCount = previewData.value.length
+
+  try {
+    isLoading.value = true
+    
+    // Call API to generate COIs from Excel file
+    const response = await generateCOIsFromExcel(uploadedExcelFile.value)
+    
+    console.log('COIs generated successfully:', response)
+    
+    // Close dialogs and reset state
+    showConfirmIssueDialog.value = false
+    showReviewDataDialog.value = false
+    previewData.value = []
+    uploadedExcelFile.value = null
+    
+    // Show success message (you can replace this with a toast notification)
+    alert(`Successfully generated ${coiCount} COI(s)!`)
+    
+    // Optionally refresh the COI list or navigate
+    // You might want to emit an event to refresh the CertificateOfInsurance component
+    
+  } catch (error) {
+    console.error('Error generating COIs:', error)
+    alert('Failed to generate COIs. Please try again.')
+  } finally {
+    isLoading.value = false
+  }
 }
 
 const handleConfirmIssueCancel = () => {
