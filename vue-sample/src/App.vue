@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import Login from './components/Login.vue'
-import Layout from './components/Layout.vue'
+import Layout from './components/layout/Layout.vue'
 import CertificateOfInsurance from './components/CertificateOfInsurance.vue'
 
 const isLoggedIn = ref(false)

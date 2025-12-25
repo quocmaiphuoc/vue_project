@@ -17,4 +17,8 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url))
     },
   },
+  esbuild: {
+    // Enable TypeScript support
+    target: 'es2020',
+  },
 })

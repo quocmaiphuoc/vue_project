@@ -63,13 +63,13 @@
 import { ref, computed, provide } from 'vue'
 import Sidebar from './Sidebar.vue'
 import Navbar from './Navbar.vue'
-import LogoutDialog from './LogoutDialog.vue'
-import GenerateCOIDialog from './GenerateCOIDialog.vue'
-import ReviewDataDialog from './ReviewDataDialog.vue'
-import PreviewPDFDialog from './PreviewPDFDialog.vue'
-import ConfirmDialog from './ConfirmDialog.vue'
-import { generateCOIsFromExcel } from '../services/api.js'
-import { parseExcelFile } from '../utils/excelParser.js'
+import LogoutDialog from '../organisms/LogoutDialog.vue'
+import GenerateCOIDialog from '../organisms/GenerateCOIDialog.vue'
+import ReviewDataDialog from '../organisms/ReviewDataDialog.vue'
+import PreviewPDFDialog from '../organisms/PreviewPDFDialog.vue'
+import ConfirmDialog from '../organisms/ConfirmDialog.vue'
+import { generateCOIsFromExcel } from '../../api/api.js'
+import { parseExcelFile } from '../../utils/excelParser.js'
 
 const props = defineProps({
   userName: {
@@ -123,11 +123,7 @@ const handleGenerateCOIUpload = async (file) => {
     // Parse Excel file in frontend and get preview data
     const parsedData = await parseExcelFile(file)
     
-    if (!parsedData || parsedData.length === 0) {
-      alert('No data found in Excel file. Please check the file format.')
-      return
-    }
-    
+    // If parsing succeeds, we have valid data
     previewData.value = parsedData
     
     showGenerateCOIDialog.value = false

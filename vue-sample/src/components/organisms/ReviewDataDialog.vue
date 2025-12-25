@@ -20,24 +20,16 @@
         </div>
         
         <div class="table-container">
-          <table class="data-table">
+          <table class="data-table" v-if="columns.length > 0">
             <thead>
               <tr>
-                <th>Association</th>
-                <th>Insured Name</th>
-                <th>Insured Email</th>
-                <th>Insured Address</th>
-                <th>Insured City</th>
+                <th v-for="column in columns" :key="column">{{ column }}</th>
                 <th>Action</th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="(row, index) in previewData" :key="index">
-                <td>{{ row.association }}</td>
-                <td>{{ row.insuredName }}</td>
-                <td>{{ row.insuredEmail }}</td>
-                <td>{{ row.insuredAddress }}</td>
-                <td>{{ row.insuredCity }}</td>
+                <td v-for="column in columns" :key="column">{{ row[column] || '' }}</td>
                 <td>
                   <button class="preview-btn" @click="handlePreviewPDF(row)">
                     <i class="pi pi-eye"></i>
@@ -47,6 +39,9 @@
               </tr>
             </tbody>
           </table>
+          <div v-else class="no-data-message">
+            <p>No data to display</p>
+          </div>
         </div>
         
         <div class="dialog-actions">
@@ -62,7 +57,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 
 const props = defineProps({
   show: {
@@ -80,6 +75,25 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['close', 'back', 'preview-pdf', 'confirm', 'show-cancel-confirm', 'show-confirm-dialog'])
+
+// Automatically extract all column names from the first row of data
+const columns = computed(() => {
+  if (!props.previewData || props.previewData.length === 0) {
+    return []
+  }
+  
+  // Get all unique keys from all rows
+  const allKeys = new Set()
+  props.previewData.forEach(row => {
+    Object.keys(row).forEach(key => {
+      if (key && key.trim() !== '') {
+        allKeys.add(key)
+      }
+    })
+  })
+  
+  return Array.from(allKeys).sort()
+})
 
 const handleClose = () => {
   emit('show-cancel-confirm')
@@ -267,6 +281,17 @@ const handleConfirm = () => {
 
 .data-table tbody tr:hover {
   background-color: #F8F8F8;
+}
+
+.no-data-message {
+  padding: 40px;
+  text-align: center;
+  color: #666666;
+}
+
+.no-data-message p {
+  margin: 0;
+  font-size: 16px;
 }
 
 .preview-btn {

@@ -23,46 +23,56 @@ export const parseExcelFile = async (file) => {
         const worksheet = workbook.Sheets[firstSheetName]
         
         // Convert to JSON
-        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 })
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' })
         
-        // Skip header row and map to object format
-        const headers = jsonData[0] || []
+        // Get headers from first row
+        const headers = (jsonData[0] || []).map(header => {
+          // Clean header: convert to string, trim, and handle empty values
+          if (header === null || header === undefined) return ''
+          return String(header).trim()
+        }).filter(header => header !== '') // Remove empty headers
+        
+        // Check if we have headers
+        if (headers.length === 0) {
+          throw new Error('No headers found in Excel file. Please ensure the first row contains column names.')
+        }
+        
+        // Check if worksheet is empty
+        if (jsonData.length <= 1) {
+          throw new Error('No data rows found in Excel file. Please ensure the file contains data rows below the header row.')
+        }
+        
+        // Get data rows (skip header row)
         const rows = jsonData.slice(1)
         
-        // Map rows to objects based on headers
+        // Map rows to objects based on headers, keeping original header names
         const mappedData = rows
-          .filter(row => row && row.length > 0 && row.some(cell => cell !== null && cell !== undefined && cell !== '')) // Filter empty rows
           .map((row, rowIndex) => {
-            const rowObj = {}
-            headers.forEach((header, index) => {
-              if (header) {
-                // Normalize header names to match expected format
-                const normalizedHeader = normalizeHeader(header)
-                const cellValue = row[index]
-                rowObj[normalizedHeader] = cellValue !== null && cellValue !== undefined ? String(cellValue).trim() : ''
-              }
+            // Check if row has any data
+            const hasData = row && row.length > 0 && row.some((cell, cellIndex) => {
+              // Check if this cell index corresponds to a valid header
+              if (cellIndex >= headers.length) return false
+              const value = cell !== null && cell !== undefined ? String(cell).trim() : ''
+              return value !== ''
             })
             
-            // Ensure required fields have default values if missing
-            if (!rowObj.association && rowObj.insuredName) {
-              rowObj.association = 'Canadian Society of Respiratory Therapists'
-            }
-            if (!rowObj.insuredEmail) {
-              rowObj.insuredEmail = ''
-            }
-            if (!rowObj.insuredAddress) {
-              rowObj.insuredAddress = ''
-            }
-            if (!rowObj.insuredCity) {
-              rowObj.insuredCity = ''
-            }
+            if (!hasData) return null
+            
+            const rowObj = {}
+            headers.forEach((header, index) => {
+              const cellValue = row[index]
+              // Keep original header name, don't normalize
+              rowObj[header] = cellValue !== null && cellValue !== undefined ? String(cellValue).trim() : ''
+            })
             
             return rowObj
           })
-          .filter(row => {
-            // Filter out rows where required fields are empty
-            return row.insuredName || row.association
-          })
+          .filter(row => row !== null) // Remove null rows (empty rows)
+        
+        // Check if we have any valid data after filtering
+        if (mappedData.length === 0) {
+          throw new Error('No valid data rows found in Excel file. Please ensure the file contains data rows with at least one non-empty cell.')
+        }
         
         resolve(mappedData)
       } catch (error) {
@@ -79,43 +89,4 @@ export const parseExcelFile = async (file) => {
   })
 }
 
-/**
- * Normalize header names to match expected format
- * @param {string} header - Original header name
- * @returns {string} Normalized header name
- */
-const normalizeHeader = (header) => {
-  if (!header) return ''
-  
-  const headerLower = header.toLowerCase().trim()
-  
-  // Map common variations to expected field names
-  const headerMap = {
-    'association': 'association',
-    'assoc': 'association',
-    'org': 'association',
-    'organization': 'association',
-    'company': 'association',
-    
-    'insured name': 'insuredName',
-    'name': 'insuredName',
-    'full name': 'insuredName',
-    'insured': 'insuredName',
-    
-    'insured email': 'insuredEmail',
-    'email': 'insuredEmail',
-    'e-mail': 'insuredEmail',
-    'email address': 'insuredEmail',
-    
-    'insured address': 'insuredAddress',
-    'address': 'insuredAddress',
-    'street address': 'insuredAddress',
-    'street': 'insuredAddress',
-    
-    'insured city': 'insuredCity',
-    'city': 'insuredCity',
-  }
-  
-  return headerMap[headerLower] || headerLower.replace(/\s+/g, '')
-}
 
