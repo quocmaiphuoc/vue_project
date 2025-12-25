@@ -26,7 +26,16 @@
       
       <div class="dialog-body">
         <div class="pdf-preview-container" :style="{ transform: `scale(${zoomLevel / 100})` }">
-          <div class="pdf-content">
+          <!-- Show actual PDF if URL is provided -->
+          <iframe 
+            v-if="pdfUrl" 
+            :src="pdfUrl" 
+            class="pdf-iframe"
+            frameborder="0"
+          ></iframe>
+          
+          <!-- Show mock PDF content if no URL -->
+          <div v-else class="pdf-content">
             <div class="pdf-header">
               <div class="pdf-logo-section">
                 <div class="pdf-logo">
@@ -53,13 +62,19 @@
               <div class="pdf-info-row">
                 <div class="pdf-info-item">
                   <strong>Policy Period:</strong>
-                  <span>01/01/2025 - 12/31/2025</span>
+                  <span>{{ formatPolicyPeriod(pdfData?.policyPeriodFrom, pdfData?.policyPeriodTo) || '01/01/2025 - 12/31/2025' }}</span>
                 </div>
               </div>
               <div class="pdf-info-row">
                 <div class="pdf-info-item">
-                  <strong>Professional Services:</strong>
-                  <span>Respiratory Therapist</span>
+                  <strong>Certificate Number:</strong>
+                  <span>{{ pdfData?.certificateOfInsuranceNo || pdfData?.certificateNumber || 'N/A' }}</span>
+                </div>
+              </div>
+              <div class="pdf-info-row">
+                <div class="pdf-info-item">
+                  <strong>Policy Number:</strong>
+                  <span>{{ pdfData?.policyNumber || 'N/A' }}</span>
                 </div>
               </div>
             </div>
@@ -82,22 +97,22 @@
                     <td>Professional Liability</td>
                     <td>Claims Made</td>
                     <td>$0</td>
-                    <td>$10,000,000</td>
-                    <td>$10,000,000</td>
+                    <td>{{ pdfData?.professionalLiabilityCoverage || '$10,000,000' }}</td>
+                    <td>{{ pdfData?.coverageSectionAggregationLimitOfLiability || '$10,000,000' }}</td>
                   </tr>
                   <tr>
                     <td>Vicarious liability</td>
                     <td>Claims Made</td>
                     <td>$0</td>
-                    <td>$10,000,000</td>
-                    <td>$10,000,000</td>
+                    <td>{{ pdfData?.vicariousLiability || '$10,000,000' }}</td>
+                    <td>{{ pdfData?.coverageSectionAggregationLimitOfLiability || '$10,000,000' }}</td>
                   </tr>
                   <tr>
                     <td>Crisis Management</td>
                     <td>Claims Made</td>
                     <td>$0</td>
-                    <td>$5,000,000</td>
-                    <td>$5,000,000</td>
+                    <td>{{ pdfData?.crisisManagementExpenses || '$5,000,000' }}</td>
+                    <td>{{ pdfData?.generalTermsAndConditionsPolicyAggregateLimitOfLiability || '$5,000,000' }}</td>
                   </tr>
                 </tbody>
               </table>
@@ -140,8 +155,39 @@ const props = defineProps({
   pdfData: {
     type: Object,
     default: () => ({})
+  },
+  pdfUrl: {
+    type: String,
+    default: null
   }
 })
+
+/**
+ * Format policy period from dates
+ * @param {string|Date} fromDate - Start date
+ * @param {string|Date} toDate - End date
+ * @returns {string} Formatted date range
+ */
+const formatPolicyPeriod = (fromDate, toDate) => {
+  if (!fromDate && !toDate) return ''
+  
+  const formatDate = (date) => {
+    if (!date) return ''
+    const d = new Date(date)
+    if (isNaN(d.getTime())) return ''
+    const month = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    const year = d.getFullYear()
+    return `${month}/${day}/${year}`
+  }
+  
+  const from = formatDate(fromDate)
+  const to = formatDate(toDate)
+  if (!from && !to) return ''
+  if (!from) return `to ${to}`
+  if (!to) return `${from} to`
+  return `${from} - ${to}`
+}
 
 const emit = defineEmits(['close'])
 
@@ -305,6 +351,16 @@ const handleClose = () => {
   max-width: 800px;
   transform-origin: top center;
   transition: transform 0.2s;
+  display: flex;
+  justify-content: center;
+}
+
+.pdf-iframe {
+  width: 100%;
+  height: 80vh;
+  min-height: 600px;
+  border: none;
+  background-color: #E5E5E5;
 }
 
 .pdf-content {

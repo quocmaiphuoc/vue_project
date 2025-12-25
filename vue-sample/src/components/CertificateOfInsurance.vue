@@ -48,8 +48,14 @@
                 v-model="filters.search" 
                 placeholder="Search..."
                 class="search-input"
+                @keyup.enter="handleSearch"
               />
             </div>
+            <button class="search-button" @click="handleSearch" :disabled="isSearching">
+              <i class="pi pi-search"></i>
+              <span v-if="!isSearching">Search</span>
+              <span v-else>Searching...</span>
+            </button>
           </div>
         </div>
       </div>
@@ -80,8 +86,14 @@
           </Column>
           <Column field="issueDate" header="Issue Date"></Column>
           <Column field="coiLink" header="COI Link">
-            <template #body>
-              <a href="#" class="link-text">Link</a>
+            <template #body="slotProps">
+              <a 
+                href="#" 
+                class="link-text" 
+                @click.prevent="handleViewPDF(slotProps.data)"
+              >
+                Link
+              </a>
             </template>
           </Column>
           <Column field="emailSubject" header="Email Subject">
@@ -108,6 +120,13 @@
         </Paginator>
       </div>
     </div>
+    
+    <PreviewPDFDialog 
+      :show="showPreviewPDFDialog" 
+      :pdf-data="selectedPDFData"
+      :pdf-url="selectedPDFUrl"
+      @close="handlePreviewPDFClose"
+    />
   </div>
 </template>
 
@@ -116,15 +135,53 @@ import { ref, computed, inject } from 'vue'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Paginator from 'primevue/paginator'
+import { searchCOIs } from '../api/api.js'
+import PreviewPDFDialog from './organisms/PreviewPDFDialog.vue'
 
 const showGenerateCOIDialog = inject('showGenerateCOIDialog', null)
 
 const first = ref(0)
 const rowsPerPage = ref(10)
+const isSearching = ref(false)
+const showPreviewPDFDialog = ref(false)
+const selectedPDFData = ref(null)
+const selectedPDFUrl = ref(null)
 
 const handleGenerateCOI = () => {
   if (showGenerateCOIDialog) {
     showGenerateCOIDialog()
+  }
+}
+
+const handleSearch = async () => {
+  try {
+    isSearching.value = true
+    
+    const searchParams = {
+      startDate: filters.value.startDate,
+      endDate: filters.value.endDate,
+      coiStatus: filters.value.coiStatus,
+      insuredName: filters.value.insuredName,
+      search: filters.value.search
+    }
+    
+    const results = await searchCOIs(searchParams)
+    
+    // Update table data with search results
+    if (results && results.items && Array.isArray(results.items)) {
+      tableData.value = results.items
+      
+      // Update pagination info if needed
+      // You can use results.totalCount, results.pageNumber, etc. for server-side pagination
+    }
+    
+    // Reset pagination to first page
+    first.value = 0
+  } catch (error) {
+    console.error('Error searching COIs:', error)
+    alert(error.message || 'Failed to search COIs. Please try again.')
+  } finally {
+    isSearching.value = false
   }
 }
 
@@ -165,6 +222,18 @@ const paginatedData = computed(() => {
 const onPage = (event) => {
   first.value = event.first
   rowsPerPage.value = event.rows
+}
+
+const handleViewPDF = (row) => {
+  selectedPDFData.value = row
+  selectedPDFUrl.value = row.pdfUrl || null
+  showPreviewPDFDialog.value = true
+}
+
+const handlePreviewPDFClose = () => {
+  showPreviewPDFDialog.value = false
+  selectedPDFData.value = null
+  selectedPDFUrl.value = null
 }
 </script>
 
@@ -304,6 +373,41 @@ const onPage = (event) => {
   font-size: 14px;
   color: #333;
   min-width: 200px;
+}
+
+.search-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background-color: var(--color-core-dark-blue);
+  color: var(--color-core-white);
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.search-button:hover:not(:disabled) {
+  background-color: #002838;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 48, 73, 0.3);
+}
+
+.search-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.search-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.search-button i {
+  font-size: 14px;
 }
 
 .table-container {
