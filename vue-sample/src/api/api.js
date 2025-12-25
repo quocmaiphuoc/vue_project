@@ -230,9 +230,27 @@ export const generateCOIsFromExcel = async (file) => {
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 1500))
     return {
-      success: true,
-      message: 'COIs generated successfully',
-      count: getMockPreviewData().length
+      isSuccess: true,
+      isFailure: false,
+      statusCode: 200,
+      value: {
+        id: 'mock-id-123',
+        batchNumber: 'BATCH-001',
+        fileName: file?.name || 'mock-file.xlsx',
+        fileUrl: '',
+        totalRecords: getMockPreviewData().length,
+        successCount: getMockPreviewData().length,
+        failedCount: 0,
+        batchType: 0,
+        status: 1,
+        statusName: 'Completed',
+        uploadedBy: 'System',
+        uploadedAt: new Date().toISOString(),
+        processingStartedAt: new Date().toISOString(),
+        processingCompletedAt: new Date().toISOString(),
+        errorMessage: null,
+        processingSummary: `Successfully processed ${getMockPreviewData().length} records`
+      }
     }
   }
 
@@ -240,7 +258,8 @@ export const generateCOIsFromExcel = async (file) => {
     const formData = new FormData()
     formData.append('file', file)
 
-    const response = await fetch(`https://webhook.site`, {
+    const url = `${API_BASE_URL}/coi/generate`
+    const response = await fetch(url, {
       method: 'POST',
       body: formData,
       // Don't set Content-Type header, browser will set it with boundary for FormData
@@ -251,8 +270,17 @@ export const generateCOIsFromExcel = async (file) => {
       throw new Error(errorData.message || `Failed to generate COIs: ${response.status} ${response.statusText}`)
     }
 
-    const data = await response.json()
-    return data
+    const responseData = await response.json()
+    
+    // Handle API response structure
+    if (responseData.isFailure || !responseData.isSuccess) {
+      const errorMessage = responseData.error?.description || 'Failed to generate COIs'
+      const error = new Error(errorMessage)
+      error.statusCode = responseData.statusCode || responseData.error?.statusCode
+      throw error
+    }
+    
+    return responseData
   } catch (error) {
     // If it's a network error, provide helpful message
     if (error.message.includes('Failed to fetch') || error.name === 'TypeError') {

@@ -183,35 +183,56 @@ const handleConfirmIssueConfirm = async () => {
     return
   }
 
-  const coiCount = previewData.value.length
-
   try {
     isLoading.value = true
     
     // Call API to generate COIs from Excel file
     const response = await generateCOIsFromExcel(uploadedExcelFile.value)
     
-    console.log('COIs generated successfully:', response)
-    
-    // Close dialogs and reset state
-    showConfirmIssueDialog.value = false
-    showReviewDataDialog.value = false
-    previewData.value = []
-    uploadedExcelFile.value = null
-    
-    // Show success message (you can replace this with a toast notification)
-    const successCount = response?.count || coiCount
-    alert(`Successfully generated ${successCount} COI(s)!`)
-    
-    // Optionally refresh the COI list or navigate
-    // You might want to emit an event to refresh the CertificateOfInsurance component
+    // Check if upload was successful
+    if (response.isSuccess && !response.isFailure) {
+      console.log('COIs generated successfully:', response)
+      
+      // Get success information from response
+      const value = response.value || {}
+      const successCount = value.successCount || 0
+      const totalRecords = value.totalRecords || 0
+      const failedCount = value.failedCount || 0
+      const batchNumber = value.batchNumber || ''
+      
+      // Close dialogs and reset state only on success
+      showConfirmIssueDialog.value = false
+      showReviewDataDialog.value = false
+      showGenerateCOIDialog.value = false
+      previewData.value = []
+      uploadedExcelFile.value = null
+      
+      // Show success message with details
+      let successMessage = `Successfully uploaded batch ${batchNumber ? `(${batchNumber})` : ''}!\n\n`
+      successMessage += `Total Records: ${totalRecords}\n`
+      successMessage += `Success: ${successCount}\n`
+      if (failedCount > 0) {
+        successMessage += `Failed: ${failedCount}\n`
+      }
+      successMessage += `\nStatus: ${value.statusName || 'Completed'}`
+      
+      alert(successMessage)
+      
+      // Optionally refresh the COI list or navigate
+      // You might want to emit an event to refresh the CertificateOfInsurance component
+    } else {
+      // Handle failure case
+      const errorMessage = response.error?.description || 'Failed to generate COIs'
+      throw new Error(errorMessage)
+    }
     
   } catch (error) {
     console.error('Error generating COIs:', error)
     const errorMessage = error.isNetworkError
-      ? 'Unable to connect to the server. Please make sure the API server is running at http://localhost:3000/api'
+      ? 'Unable to connect to the server. Please make sure the API server is running.'
       : error.message || 'Failed to generate COIs. Please try again.'
     alert(errorMessage)
+    // Don't close dialogs on error - let user try again
   } finally {
     isLoading.value = false
   }
