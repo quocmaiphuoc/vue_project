@@ -218,6 +218,72 @@ export const searchCOIs = async (params) => {
 }
 
 /**
+ * Upload and parse Excel file
+ * Sends file to API for parsing and validation
+ * @param {File} file - Excel file to upload
+ * @returns {Promise<Object>} API response with parsed data
+ */
+export const uploadExcelFile = async (file) => {
+  // Use mock data if mock data is enabled
+  if (USE_MOCK_DATA) {
+    console.log('Using mock data for development - simulating file upload')
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 1500))
+    return {
+      isSuccess: true,
+      isFailure: false,
+      statusCode: 200,
+      value: {
+        id: 'mock-upload-id-123',
+        fileName: file?.name || 'mock-file.xlsx',
+        fileUrl: '',
+        totalRecords: getMockPreviewData().length,
+        parsedData: getMockPreviewData()
+      }
+    }
+  }
+
+  try {
+    const formData = new FormData()
+    formData.append('file', file)
+
+    const url = `${API_BASE_URL}/coi/upload`
+    const response = await fetch(url, {
+      method: 'POST',
+      body: formData,
+      // Don't set Content-Type header, browser will set it with boundary for FormData
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      throw new Error(errorData.message || `Failed to upload file: ${response.status} ${response.statusText}`)
+    }
+
+    const responseData = await response.json()
+    
+    // Handle API response structure
+    if (responseData.isFailure || !responseData.isSuccess) {
+      const errorMessage = responseData.error?.description || 'Failed to upload file'
+      const error = new Error(errorMessage)
+      error.statusCode = responseData.statusCode || responseData.error?.statusCode
+      throw error
+    }
+    
+    return responseData
+  } catch (error) {
+    // If it's a network error, provide helpful message
+    if (error.message.includes('Failed to fetch') || error.name === 'TypeError') {
+      const networkError = new Error('Unable to connect to the server. Please make sure the API server is running.')
+      networkError.isNetworkError = true
+      throw networkError
+    }
+    
+    console.error('Error uploading file:', error)
+    throw error
+  }
+}
+
+/**
  * Generate COIs from Excel file
  * Sends file to API, API processes it and generates COIs
  * @param {File} file - Excel file to process

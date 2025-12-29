@@ -20,6 +20,8 @@
       :loading="isLoading"
       @close="handleGenerateCOIClose"
       @upload="handleGenerateCOIUpload"
+      @upload-success="handleGenerateCOIUploadSuccess"
+      @upload-error="handleGenerateCOIUploadError"
     />
     <ReviewDataDialog 
       :show="showReviewDataDialog" 
@@ -120,7 +122,7 @@ const handleGenerateCOIUpload = async (file) => {
     isLoading.value = true
     uploadedExcelFile.value = file
     
-    // Parse Excel file in frontend and get preview data
+    // Parse Excel file in frontend and get preview data (fallback if API doesn't provide parsed data)
     const parsedData = await parseExcelFile(file)
     
     // If parsing succeeds, we have valid data
@@ -135,6 +137,37 @@ const handleGenerateCOIUpload = async (file) => {
   } finally {
     isLoading.value = false
   }
+}
+
+const handleGenerateCOIUploadSuccess = (data) => {
+  // Handle successful upload from API
+  const { file, response } = data
+  
+  // Store the uploaded file
+  uploadedExcelFile.value = file
+  
+  // Use parsed data from API response if available, otherwise parse locally
+  if (response.value?.parsedData && Array.isArray(response.value.parsedData)) {
+    previewData.value = response.value.parsedData
+  } else {
+    // Fallback to local parsing
+    parseExcelFile(file).then(parsedData => {
+      previewData.value = parsedData
+    }).catch(error => {
+      console.error('Error parsing Excel file locally:', error)
+      alert('Failed to parse Excel file. Please check the file format and try again.')
+      return
+    })
+  }
+  
+  // Close upload dialog and show review dialog
+  showGenerateCOIDialog.value = false
+  showReviewDataDialog.value = true
+}
+
+const handleGenerateCOIUploadError = (errorMessage) => {
+  // Error is already shown in GenerateCOIDialog, just log it here
+  console.error('Upload error:', errorMessage)
 }
 
 const handleReviewDataClose = () => {

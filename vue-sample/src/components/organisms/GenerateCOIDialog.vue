@@ -51,15 +51,26 @@
         </div>
         
         <div class="dialog-actions">
-          <button class="btn-cancel" @click="handleClose">Cancel</button>
+          <button class="btn-cancel" @click="handleClose" :disabled="isUploading">Cancel</button>
           <button 
             class="btn-upload" 
             @click="handleUpload"
-            :disabled="!selectedFile || loading"
+            :disabled="!selectedFile || isUploading"
           >
-            <span v-if="loading">Processing...</span>
+            <span v-if="isUploading" class="upload-loading">
+              <i class="pi pi-spin pi-spinner"></i>
+              <span>Uploading...</span>
+            </span>
             <span v-else>Upload</span>
           </button>
+        </div>
+        
+        <!-- Spinner overlay -->
+        <div v-if="isUploading" class="spinner-overlay">
+          <div class="spinner-container">
+            <i class="pi pi-spin pi-spinner spinner-icon"></i>
+            <p class="spinner-text">Uploading file...</p>
+          </div>
         </div>
       </div>
     </div>
@@ -68,6 +79,7 @@
 
 <script setup>
 import { ref } from 'vue'
+import { uploadExcelFile } from '../../api/api.js'
 
 const props = defineProps({
   show: {
@@ -80,11 +92,12 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['close', 'upload'])
+const emit = defineEmits(['close', 'upload', 'upload-success', 'upload-error'])
 
 const fileInput = ref(null)
 const selectedFile = ref(null)
 const isDragOver = ref(false)
+const isUploading = ref(false)
 
 const triggerFileInput = () => {
   fileInput.value?.click()
@@ -141,10 +154,45 @@ const handleClose = () => {
   emit('close')
 }
 
-const handleUpload = () => {
-  if (selectedFile.value) {
-    emit('upload', selectedFile.value)
-    removeFile()
+const handleUpload = async () => {
+  if (!selectedFile.value) {
+    return
+  }
+
+  try {
+    isUploading.value = true
+    
+    // Call API to upload and parse the file
+    const response = await uploadExcelFile(selectedFile.value)
+    
+    // Check if upload was successful
+    if (response.isSuccess && !response.isFailure) {
+      // Emit success event with response data
+      emit('upload-success', {
+        file: selectedFile.value,
+        response: response
+      })
+      
+      // Also emit the original upload event for backward compatibility
+      emit('upload', selectedFile.value)
+      
+      // Clear selected file
+      removeFile()
+    } else {
+      // Handle failure
+      const errorMessage = response.error?.description || 'Failed to upload file'
+      emit('upload-error', errorMessage)
+      alert(errorMessage)
+    }
+  } catch (error) {
+    console.error('Error uploading file:', error)
+    const errorMessage = error.isNetworkError
+      ? 'Unable to connect to the server. Please make sure the API server is running.'
+      : error.message || 'Failed to upload file. Please try again.'
+    emit('upload-error', errorMessage)
+    alert(errorMessage)
+  } finally {
+    isUploading.value = false
   }
 }
 </script>
@@ -172,6 +220,7 @@ const handleUpload = () => {
   max-height: 90vh;
   overflow-y: auto;
   animation: slideIn 0.3s ease-out;
+  position: relative;
 }
 
 @keyframes slideIn {
@@ -411,6 +460,59 @@ const handleUpload = () => {
 .btn-upload:disabled:hover {
   transform: none;
   box-shadow: none;
+}
+
+.upload-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.upload-loading i {
+  font-size: 16px;
+}
+
+.spinner-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  z-index: 10;
+}
+
+.spinner-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.spinner-icon {
+  font-size: 48px;
+  color: var(--color-core-dark-blue);
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spinner-text {
+  font-size: 16px;
+  font-weight: 500;
+  color: #333333;
+  margin: 0;
 }
 </style>
 
