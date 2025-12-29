@@ -28,7 +28,20 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(row, index) in previewData" :key="index">
+              <tr v-if="isLoadingData">
+                <td :colspan="columns.length + 1" class="loading-cell">
+                  <div class="loading-spinner">
+                    <i class="pi pi-spin pi-spinner"></i>
+                    <span>Loading data...</span>
+                  </div>
+                </td>
+              </tr>
+              <tr v-else-if="tableData.length === 0">
+                <td :colspan="columns.length + 1" class="no-data-cell">
+                  <p>No data to display</p>
+                </td>
+              </tr>
+              <tr v-else v-for="(row, index) in tableData" :key="index">
                 <td v-for="column in columns" :key="column">{{ row[column] || '' }}</td>
                 <td>
                   <button class="preview-btn" @click="handlePreviewPDF(row)">
@@ -39,9 +52,6 @@
               </tr>
             </tbody>
           </table>
-          <div v-else class="no-data-message">
-            <p>No data to display</p>
-          </div>
         </div>
         
         <div class="dialog-actions">
@@ -57,7 +67,8 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
+import { searchCOIs } from '../../api/api.js'
 
 const props = defineProps({
   show: {
@@ -68,6 +79,10 @@ const props = defineProps({
     type: Array,
     default: () => []
   },
+  batchId: {
+    type: String,
+    default: null
+  },
   loading: {
     type: Boolean,
     default: false
@@ -76,15 +91,19 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'back', 'preview-pdf', 'confirm', 'show-cancel-confirm', 'show-confirm-dialog'])
 
+const tableData = ref([])
+const isLoadingData = ref(false)
+
 // Automatically extract all column names from the first row of data
 const columns = computed(() => {
-  if (!props.previewData || props.previewData.length === 0) {
+  const data = tableData.value.length > 0 ? tableData.value : props.previewData
+  if (!data || data.length === 0) {
     return []
   }
   
   // Get all unique keys from all rows
   const allKeys = new Set()
-  props.previewData.forEach(row => {
+  data.forEach(row => {
     Object.keys(row).forEach(key => {
       if (key && key.trim() !== '') {
         allKeys.add(key)
@@ -94,6 +113,95 @@ const columns = computed(() => {
   
   return Array.from(allKeys).sort()
 })
+
+// Watch for dialog show and batchId changes to fetch data
+watch([() => props.show, () => props.batchId], async ([show, batchId]) => {
+  if (show && batchId) {
+    await fetchBatchData(batchId)
+  } else if (show && !batchId && props.previewData.length > 0) {
+    // Fallback to previewData if no batchId
+    tableData.value = props.previewData
+  } else if (!show) {
+    // Clear data when dialog closes
+    tableData.value = []
+  }
+}, { immediate: true })
+
+/**
+ * Format date to YYYY-MM-DD
+ * @param {string|Date} date - Date string or Date object
+ * @returns {string} Formatted date
+ */
+const formatDate = (date) => {
+  if (!date) return ''
+  const d = new Date(date)
+  if (isNaN(d.getTime())) return ''
+  return d.toISOString().split('T')[0]
+}
+
+/**
+ * Format date range for policy period
+ * @param {string|Date} fromDate - Start date
+ * @param {string|Date} toDate - End date
+ * @returns {string} Formatted date range
+ */
+const formatPolicyPeriod = (fromDate, toDate) => {
+  const from = formatDate(fromDate)
+  const to = formatDate(toDate)
+  if (!from && !to) return ''
+  if (!from) return `to ${to}`
+  if (!to) return `${from} to`
+  return `${from} to ${to}`
+}
+
+/**
+ * Map API response item to table format (same as CertificateOfInsurance.vue)
+ * @param {Object} item - API response item
+ * @param {number} index - Item index
+ * @returns {Object} Mapped item
+ */
+const mapCOIItem = (item, index) => {
+  return {
+    no: index + 1,
+    id: item.id,
+    association: item.association || '',
+    insuredName: item.insuredName || '',
+    coiNo: item.certificateOfInsuranceNo || item.certificateNumber || '',
+    policyPeriod: formatPolicyPeriod(item.policyPeriodFrom, item.policyPeriodTo),
+    status: item.statusName || '',
+    issueDate: formatDate(item.requestDate || item.processedDate),
+    emailSubject: `COI_${item.insuredName || ''}_${item.certificateOfInsuranceNo || item.certificateNumber || ''}...`,
+    // Keep all original fields for reference
+    ...item
+  }
+}
+
+// Fetch data from API using batchId (same pattern as CertificateOfInsurance.vue)
+const fetchBatchData = async (batchId) => {
+  try {
+    isLoadingData.value = true
+    
+    const searchParams = {
+      batchId: batchId
+    }
+    
+    const results = await searchCOIs(searchParams)
+    
+    if (results && results.items && Array.isArray(results.items)) {
+      // Map items using the same mapping function as CertificateOfInsurance
+      tableData.value = results.items
+    } else {
+      // Fallback to previewData if API doesn't return data
+      tableData.value = props.previewData
+    }
+  } catch (error) {
+    console.error('Error fetching batch data:', error)
+    // Fallback to previewData on error
+    tableData.value = props.previewData
+  } finally {
+    isLoadingData.value = false
+  }
+}
 
 const handleClose = () => {
   emit('show-cancel-confirm')
@@ -283,13 +391,30 @@ const handleConfirm = () => {
   background-color: #F8F8F8;
 }
 
-.no-data-message {
+.loading-cell,
+.no-data-cell {
   padding: 40px;
   text-align: center;
   color: #666666;
 }
 
-.no-data-message p {
+.loading-spinner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.loading-spinner i {
+  font-size: 20px;
+  color: var(--color-core-dark-blue);
+}
+
+.loading-spinner span {
+  font-size: 14px;
+}
+
+.no-data-cell p {
   margin: 0;
   font-size: 16px;
 }

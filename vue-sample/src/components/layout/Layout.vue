@@ -26,6 +26,7 @@
     <ReviewDataDialog 
       :show="showReviewDataDialog" 
       :preview-data="previewData"
+      :batch-id="uploadBatchId"
       :loading="isLoading"
       @close="handleReviewDataClose"
       @back="handleReviewDataBack"
@@ -91,6 +92,7 @@ const showConfirmIssueDialog = ref(false)
 const previewData = ref([])
 const selectedPDFData = ref(null)
 const uploadedExcelFile = ref(null)
+const uploadBatchId = ref(null)
 const isLoading = ref(false)
 
 const showLogoutDialogHandler = () => {
@@ -146,6 +148,9 @@ const handleGenerateCOIUploadSuccess = (data) => {
   // Store the uploaded file
   uploadedExcelFile.value = file
   
+  // Store batch ID from upload response
+  uploadBatchId.value = response.value?.id || response.value?.batchNumber || null
+  
   // Use parsed data from API response if available, otherwise parse locally
   if (response.value?.parsedData && Array.isArray(response.value.parsedData)) {
     previewData.value = response.value.parsedData
@@ -165,15 +170,52 @@ const handleGenerateCOIUploadSuccess = (data) => {
   showReviewDataDialog.value = true
 }
 
-const handleGenerateCOIUploadError = (errorMessage) => {
-  // Error is already shown in GenerateCOIDialog, just log it here
+const handleGenerateCOIUploadError = async (errorData) => {
+  // Handle error - could be string (old format) or object (new format)
+  const errorMessage = typeof errorData === 'string' ? errorData : errorData.errorMessage
+  const file = typeof errorData === 'object' ? errorData.file : null
+  const shouldParseLocally = typeof errorData === 'object' ? errorData.shouldParseLocally : false
+  
   console.error('Upload error:', errorMessage)
+  
+  // If API failed but we have a file, try to parse it locally
+  if (shouldParseLocally && file) {
+    try {
+      isLoading.value = true
+      
+      // Parse Excel file locally
+      const parsedData = await parseExcelFile(file)
+      
+      // Store the uploaded file for later use
+      uploadedExcelFile.value = file
+      uploadBatchId.value = null // No batch ID since API failed
+      
+      // Set preview data
+      previewData.value = parsedData
+      
+      // Show warning message
+      alert(`API upload failed: ${errorMessage}\n\nFile parsed locally. You can review the data, but batch processing may not be available.`)
+      
+      // Close upload dialog and show review dialog
+      showGenerateCOIDialog.value = false
+      showReviewDataDialog.value = true
+    } catch (parseError) {
+      console.error('Error parsing Excel file locally:', parseError)
+      alert(`Failed to upload file and parse locally:\n${errorMessage}\n\nParse error: ${parseError.message || 'Invalid file format'}`)
+    } finally {
+      isLoading.value = false
+    }
+  } else {
+    // If we can't parse locally, just show error
+    alert(errorMessage)
+  }
 }
 
 const handleReviewDataClose = () => {
   showReviewDataDialog.value = false
   previewData.value = []
   uploadedExcelFile.value = null
+  uploadBatchId.value = null
 }
 
 const handleReviewDataBack = () => {
@@ -239,6 +281,7 @@ const handleConfirmIssueConfirm = async () => {
       showGenerateCOIDialog.value = false
       previewData.value = []
       uploadedExcelFile.value = null
+      uploadBatchId.value = null
       
       // Show success message with details
       let successMessage = `Successfully uploaded batch ${batchNumber ? `(${batchNumber})` : ''}!\n\n`

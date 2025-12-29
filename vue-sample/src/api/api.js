@@ -85,6 +85,7 @@ const mapCOIItem = (item, index) => {
  * @param {string} params.coiStatus - COI status filter
  * @param {string} params.insuredName - Insured name filter
  * @param {string} params.search - Search text
+ * @param {string} params.batchId - Batch ID to filter by
  * @returns {Promise<Object>} Object with items array and pagination info
  */
 export const searchCOIs = async (params) => {
@@ -94,42 +95,57 @@ export const searchCOIs = async (params) => {
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 500))
     
-    // Mock data matching the API response structure
-    const mockItems = [
-      { 
-        id: '1', 
-        association: 'ABC Corp', 
-        insuredName: 'Emily Carter', 
-        certificateOfInsuranceNo: 'COI-001', 
-        policyPeriodFrom: '2025-01-01', 
-        policyPeriodTo: '2025-12-31', 
-        statusName: 'Generating', 
-        requestDate: '2025-01-15' 
-      },
-      { 
-        id: '2', 
-        association: 'XYZ Inc', 
-        insuredName: 'John Smith', 
-        certificateOfInsuranceNo: 'COI-002', 
-        policyPeriodFrom: '2025-01-01', 
-        policyPeriodTo: '2025-12-31', 
-        statusName: 'Issued', 
-        requestDate: '2025-01-14' 
-      },
-      { 
-        id: '3', 
-        association: 'DEF Ltd', 
-        insuredName: 'Sarah Johnson', 
-        certificateOfInsuranceNo: 'COI-003', 
-        policyPeriodFrom: '2025-01-01', 
-        policyPeriodTo: '2025-12-31', 
-        statusName: 'Issued', 
-        requestDate: '2025-01-13' 
-      },
-    ]
+    // Get mock preview data and convert to search response format
+    const mockPreviewData = getMockPreviewData()
+    const mockItems = mockPreviewData.map((item, index) => ({
+      id: `coi-${params.batchId || 'default'}-${index + 1}`,
+      requestNumber: `REQ-${String(index + 1).padStart(4, '0')}`,
+      uploadBatchId: params.batchId || `batch-${Date.now()}`,
+      memberId: `member-${index + 1}`,
+      memberCode: `M${String(index + 1).padStart(3, '0')}`,
+      memberName: item.insuredName,
+      rowNumber: index + 1,
+      purpose: 'Professional Liability Insurance',
+      requestDate: new Date().toISOString(),
+      status: index < 2 ? 0 : 1, // First 2 are Generating (0), rest are Issued (1)
+      statusName: index < 2 ? 'Generating' : 'Issued',
+      processedDate: index < 2 ? null : new Date().toISOString(),
+      certificateId: index < 2 ? null : `cert-${index + 1}`,
+      certificateNumber: index < 2 ? null : `COI-${String(index + 1).padStart(3, '0')}`,
+      pdfUrl: index < 2 ? null : `https://example.com/pdfs/coi-${index + 1}.pdf`,
+      validationErrors: null,
+      errorMessage: null,
+      isUpdate: false,
+      association: item.association,
+      insuredName: item.insuredName,
+      insuredEmail: item.insuredEmail,
+      insuredAddress: item.insuredAddress,
+      insuredCity: item.insuredCity,
+      insuredProvince: item.insuredProvince || '',
+      insuredPostalCode: item.insuredPostalCode || '',
+      policyNumber: `POL-${String(index + 1).padStart(6, '0')}`,
+      certificateOfInsuranceNo: index < 2 ? null : `COI-${String(index + 1).padStart(3, '0')}`,
+      policyPeriodFrom: '2025-01-01T00:00:00Z',
+      policyPeriodTo: '2025-12-31T23:59:59Z',
+      cost: 1250.00,
+      professionalLiabilityCoverage: '$10,000,000',
+      vicariousLiability: '$10,000,000',
+      personalInjuryCoverage: '$5,000,000',
+      disciplinaryProceedingsExpensesCoverage: '$2,000,000',
+      crisisManagementExpenses: '$5,000,000',
+      preClaimExpenses: '$1,000,000',
+      coverageSectionAggregationLimitOfLiability: '$10,000,000',
+      generalTermsAndConditionsPolicyAggregateLimitOfLiability: '$10,000,000'
+    }))
     
     // Filter mock data based on search params
     let filteredItems = mockItems
+    
+    // If batchId is provided, use it to filter (all items should have matching uploadBatchId)
+    if (params.batchId) {
+      filteredItems = filteredItems.filter(item => item.uploadBatchId === params.batchId)
+    }
+    
     if (params.search) {
       const searchLower = params.search.toLowerCase()
       filteredItems = filteredItems.filter(item => 
@@ -169,6 +185,7 @@ export const searchCOIs = async (params) => {
     if (params.coiStatus && params.coiStatus !== 'all') queryParams.append('coiStatus', params.coiStatus)
     if (params.insuredName && params.insuredName !== 'all') queryParams.append('insuredName', params.insuredName)
     if (params.search) queryParams.append('search', params.search)
+    if (params.batchId) queryParams.append('batchId', params.batchId)
 
     const url = `${API_BASE_URL}/coi/search?${queryParams.toString()}`
     
@@ -229,16 +246,34 @@ export const uploadExcelFile = async (file) => {
     console.log('Using mock data for development - simulating file upload')
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 1500))
+    
+    // Generate mock batch data
+    const mockBatchId = `batch-${Date.now()}`
+    const mockFileName = file?.name || 'sample-data.xlsx'
+    const mockData = getMockPreviewData()
+    
     return {
       isSuccess: true,
       isFailure: false,
       statusCode: 200,
       value: {
-        id: 'mock-upload-id-123',
-        fileName: file?.name || 'mock-file.xlsx',
-        fileUrl: '',
-        totalRecords: getMockPreviewData().length,
-        parsedData: getMockPreviewData()
+        id: mockBatchId,
+        batchNumber: `BATCH-${Date.now().toString().slice(-6)}`,
+        fileName: mockFileName,
+        fileUrl: `https://example.com/files/${mockFileName}`,
+        totalRecords: mockData.length,
+        successCount: mockData.length,
+        failedCount: 0,
+        batchType: 0,
+        status: 1,
+        statusName: 'Completed',
+        uploadedBy: 'System User',
+        uploadedAt: new Date().toISOString(),
+        processingStartedAt: new Date().toISOString(),
+        processingCompletedAt: new Date().toISOString(),
+        errorMessage: null,
+        processingSummary: `Successfully processed ${mockData.length} records`,
+        parsedData: mockData
       }
     }
   }

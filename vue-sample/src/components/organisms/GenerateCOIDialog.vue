@@ -179,18 +179,28 @@ const handleUpload = async () => {
       // Clear selected file
       removeFile()
     } else {
-      // Handle failure
+      // Handle failure - but still try to parse locally
       const errorMessage = response.error?.description || 'Failed to upload file'
-      emit('upload-error', errorMessage)
-      alert(errorMessage)
+      emit('upload-error', {
+        errorMessage: errorMessage,
+        file: selectedFile.value,
+        shouldParseLocally: true
+      })
     }
   } catch (error) {
     console.error('Error uploading file:', error)
     const errorMessage = error.isNetworkError
       ? 'Unable to connect to the server. Please make sure the API server is running.'
       : error.message || 'Failed to upload file. Please try again.'
-    emit('upload-error', errorMessage)
-    alert(errorMessage)
+    
+    // Even if API fails, try to parse file locally and show data
+    emit('upload-error', {
+      errorMessage: errorMessage,
+      file: selectedFile.value,
+      shouldParseLocally: true
+    })
+    
+    // Don't show alert here, let parent handle it and parse locally
   } finally {
     isUploading.value = false
   }
