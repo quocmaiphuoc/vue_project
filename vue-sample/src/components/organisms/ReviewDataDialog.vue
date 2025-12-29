@@ -20,29 +20,37 @@
         </div>
         
         <div class="table-container">
-          <table class="data-table" v-if="columns.length > 0">
+          <table class="data-table" v-if="displayData.length > 0 || isLoadingData">
             <thead>
               <tr>
-                <th v-for="column in columns" :key="column">{{ column }}</th>
+                <th>Association</th>
+                <th>Insured Name</th>
+                <th>Insured Email</th>
+                <th>Insured Address</th>
+                <th>Insured City</th>
                 <th>Action</th>
               </tr>
             </thead>
             <tbody>
               <tr v-if="isLoadingData">
-                <td :colspan="columns.length + 1" class="loading-cell">
+                <td colspan="6" class="loading-cell">
                   <div class="loading-spinner">
                     <i class="pi pi-spin pi-spinner"></i>
                     <span>Loading data...</span>
                   </div>
                 </td>
               </tr>
-              <tr v-else-if="tableData.length === 0">
-                <td :colspan="columns.length + 1" class="no-data-cell">
+              <tr v-else-if="displayData.length === 0">
+                <td colspan="6" class="no-data-cell">
                   <p>No data to display</p>
                 </td>
               </tr>
-              <tr v-else v-for="(row, index) in tableData" :key="index">
-                <td v-for="column in columns" :key="column">{{ row[column] || '' }}</td>
+              <tr v-else v-for="(row, index) in displayData" :key="index">
+                <td>{{ row.association || '' }}</td>
+                <td>{{ row.insuredName || '' }}</td>
+                <td>{{ row.insuredEmail || '' }}</td>
+                <td>{{ row.insuredAddress || '' }}</td>
+                <td>{{ row.insuredCity || '' }}</td>
                 <td>
                   <button class="preview-btn" @click="handlePreviewPDF(row)">
                     <i class="pi pi-eye"></i>
@@ -94,24 +102,9 @@ const emit = defineEmits(['close', 'back', 'preview-pdf', 'confirm', 'show-cance
 const tableData = ref([])
 const isLoadingData = ref(false)
 
-// Automatically extract all column names from the first row of data
-const columns = computed(() => {
-  const data = tableData.value.length > 0 ? tableData.value : props.previewData
-  if (!data || data.length === 0) {
-    return []
-  }
-  
-  // Get all unique keys from all rows
-  const allKeys = new Set()
-  data.forEach(row => {
-    Object.keys(row).forEach(key => {
-      if (key && key.trim() !== '') {
-        allKeys.add(key)
-      }
-    })
-  })
-  
-  return Array.from(allKeys).sort()
+// Display data - use tableData if available, otherwise use previewData
+const displayData = computed(() => {
+  return tableData.value.length > 0 ? tableData.value : props.previewData
 })
 
 // Watch for dialog show and batchId changes to fetch data
